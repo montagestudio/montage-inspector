@@ -1,6 +1,6 @@
 function getMontageComponentProperties() {
     var properties = Object.create(null),
-        component = $0.controller;
+        component = $0.controller,
         propertyNames = [
             "ownerComponent",
             "parentComponent",
@@ -40,6 +40,40 @@ function getMontageComponentTree(rootComponent) {
     }
 }
 
+function getMontageComponentBindings() {
+    var properties = Object.create(null),
+        bindingDescriptors = $0.controller._bindingDescriptors,
+        bindingDescriptor,
+        bindingName,
+        binding;
+
+    for (var propertyName in bindingDescriptors) {
+        if (bindingDescriptors.hasOwnProperty(propertyName)) {
+            bindingDescriptor = bindingDescriptors[propertyName];
+            binding = Object.create(null);
+
+            if ("<-" in bindingDescriptor) {
+                bindingName = propertyName + " <- " + bindingDescriptor["<-"];
+            } else if ("<->" in bindingDescriptor) {
+                bindingName = propertyName + " <-> " + bindingDescriptor["<->"];
+            } else { // doesn't come from a serialization
+                bindingName = propertyName;
+            }
+
+            binding.boundObject = bindingDescriptor.boundObject,
+            binding.boundObjectPropertyPath =  bindingDescriptor.boundObjectPropertyPath;
+
+            if ("converter" in bindingDescriptor) {
+                binding.converter = bindingDescriptor.converter;
+            }
+
+            properties[bindingName] = binding;
+        }
+    }
+
+    return properties;
+}
+
 chrome.devtools.panels.elements.createSidebarPane(
     "Montage Component",
     function (sidebar) {
@@ -50,10 +84,28 @@ chrome.devtools.panels.elements.createSidebarPane(
                 } else {
                     sidebar.setObject();
                 }
-
             })
         }
+
+        sidebar.setObject();
         chrome.devtools.panels.elements.onSelectionChanged.addListener(updateMontageComponentProperties);
+    }
+);
+
+chrome.devtools.panels.elements.createSidebarPane(
+    "Montage Component Bindings",
+    function (sidebar) {
+        function updateMontageComponentBindings() {
+            chrome.devtools.inspectedWindow.eval("$0.controller", function(controller) {
+                if (controller) {
+                    sidebar.setExpression("(" + getMontageComponentBindings.toString() + ")()");
+                } else {
+                    sidebar.setObject();
+                }
+            })
+        }
+        sidebar.setObject();
+        chrome.devtools.panels.elements.onSelectionChanged.addListener(updateMontageComponentBindings);
     }
 );
 

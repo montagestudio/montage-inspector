@@ -1,6 +1,6 @@
 function getMontageComponentProperties() {
     var properties = Object.create(null),
-        component = $0.controller,
+        component = $0.component,
         propertyNames = [
             "ownerComponent",
             "parentComponent",
@@ -23,8 +23,10 @@ function getMontageComponentProperties() {
 }
 
 function getMontageComponentTree(rootComponent) {
+    var name;
+
     if (!rootComponent) {
-        rootComponent = require('montage/ui/component').__root__;
+        rootComponent = montageRequire('ui/component').__root__;
     }
 
     var childComponents = rootComponent.childComponents;
@@ -33,7 +35,8 @@ function getMontageComponentTree(rootComponent) {
         var components = Object.create(null);
 
         for (var i = 0, component; component = childComponents[i]; i++) {
-            components[component._montage_metadata.label] = getMontageComponentTree(component);
+            name = component._montage_metadata.label || component._montage_metadata.objectName;
+            components[name] = getMontageComponentTree(component);
         }
 
         return components;
@@ -42,7 +45,7 @@ function getMontageComponentTree(rootComponent) {
 
 function getMontageComponentBindings() {
     var properties = Object.create(null),
-        bindingDescriptors = $0.controller._bindingDescriptors,
+        bindingDescriptors = $0.component.getBindings(),
         bindingDescriptor,
         bindingName,
         binding;
@@ -60,8 +63,8 @@ function getMontageComponentBindings() {
                 bindingName = propertyName;
             }
 
-            binding.boundObject = bindingDescriptor.boundObject,
-            binding.boundObjectPropertyPath =  bindingDescriptor.boundObjectPropertyPath;
+            binding.source = bindingDescriptor.source;
+            binding.sourcePath =  bindingDescriptor.sourcePath;
 
             if ("converter" in bindingDescriptor) {
                 binding.converter = bindingDescriptor.converter;
@@ -78,8 +81,8 @@ chrome.devtools.panels.elements.createSidebarPane(
     "Montage Component",
     function (sidebar) {
         function updateMontageComponentProperties() {
-            chrome.devtools.inspectedWindow.eval("$0.controller", function(controller) {
-                if (controller) {
+            chrome.devtools.inspectedWindow.eval("!!$0.component", function(component) {
+                if (component) {
                     sidebar.setExpression("(" + getMontageComponentProperties.toString() + ")()");
                 } else {
                     sidebar.setObject();
@@ -96,8 +99,8 @@ chrome.devtools.panels.elements.createSidebarPane(
     "Montage Component Bindings",
     function (sidebar) {
         function updateMontageComponentBindings() {
-            chrome.devtools.inspectedWindow.eval("$0.controller", function(controller) {
-                if (controller) {
+            chrome.devtools.inspectedWindow.eval("!!$0.component", function(component) {
+                if (component) {
                     sidebar.setExpression("(" + getMontageComponentBindings.toString() + ")()");
                 } else {
                     sidebar.setObject();
@@ -113,7 +116,7 @@ chrome.devtools.panels.elements.createSidebarPane(
     "Montage Component Tree",
     function (sidebar) {
         function updateComponentTree() {
-            sidebar.setExpression("(" + getMontageComponentTree.toString() + ")()");
+            sidebar.setExpression("(" + getMontageComponentTree.toString() + ")()", "root");
         }
         updateComponentTree();
     }

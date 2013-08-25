@@ -19,12 +19,12 @@ Inspector.run = function(funktion, callback) {
 
 ;(function getRootComponent() {
     Inspector.run(function() {
-        require.async("montage/ui/component");
+        montageRequire.async("ui/component");
     }, function() {
         Inspector.run(function() {
-            return require("montage/ui/component").__root__;
+            return !!montageRequire("ui/component").__root__;
         }, function(component) {
-            if (component == null) {
+            if (component) {
                 Inspector.log("WARNING: root component NOT found!");
             } else {
                 Inspector.debug("root component found!");
